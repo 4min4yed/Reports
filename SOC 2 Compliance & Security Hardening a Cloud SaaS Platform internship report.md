@@ -15,8 +15,8 @@ I combined structured methodology (PDCA), focused OSINT and active testing, auto
 Convert pentesting findings and other best practices into durable security controls; implement practical, repeatable solutions aligned with SOC 2 objectives.
 
 ## Solutions implemented
-- Nginx hardening towards SOC 2 compliance (configuration) [GitHub].  
-- Port Knocking solution to stop scanning open ports [GitHub].  
+- Nginx hardening towards SOC 2 compliance (configuration) [Implementation](Nginx_Hardening.md).  
+- Port Knocking solution to stop scanning open ports [implementation](Portknocking.md).  
 - iptables firewall rules making ports appear closed instead of filtered [GitHub].  
 - Hiding Nginx version from headers and error pages; added necessary security headers [GitHub].  
 - Protection against brute force & DDoS: rate & connection‑time limiting [GitHub].  
