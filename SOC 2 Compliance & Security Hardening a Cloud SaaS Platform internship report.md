@@ -17,10 +17,10 @@ Convert pentesting findings and other best practices into durable security contr
 ## Solutions implemented
 - Nginx hardening towards SOC 2 compliance (configuration) [Implementation](https://github.com/4min4yed/My-Security-Solutions/blob/main/Nginx_Hardening.md).  
 - Port Knocking solution to stop scanning open ports [implementation](https://github.com/4min4yed/My-Security-Solutions/blob/main/Portknocking.md).  
-- iptables firewall rules making ports appear closed instead of filtered [GitHub].  
-- Hiding Nginx version from headers and error pages; added necessary security headers [GitHub].  
-- Protection against brute force & DDoS: rate & connection‑time limiting [GitHub].  
-- Fail2ban to block IPs exceeding thresholds [GitHub].  
+- iptables firewall rules making ports appear closed instead of filtered [implementation](https://github.com/4min4yed/My-Security-Solutions/blob/main/Port_Knocking_Filtered_Port_Fix.md). 
+- Hiding Nginx version from headers and error pages; added necessary security headers [to added to GitHub].  
+- Protection against brute force & DDoS: rate & connection‑time limiting [to added to GitHub].  
+- Fail2ban to block IPs exceeding thresholds [to added to GitHub].  
 - Enforced unprivileged runtime, non‑root execution, and read‑only filesystems.  
 - Converted privileged containers to unprivileged and enforced zero‑trust principles.  
 - Monitored emerging CVEs (dark web, forums) and integrated mitigations into roadmap.  
