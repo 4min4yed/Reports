@@ -75,6 +75,3 @@ Convert pentesting findings and other best practices into durable security contr
 - Curiosity‑driven research: continuous CVE monitoring and exploration of new components (e.g., Proxmox internals).  
 - Strong communication: presented technical outcomes to leadership and documented for cross‑functional teams.  
 - Collaborative & independent: worked with leadership, devs, and independently to deliver PoCs and remediation.
-
----
-
