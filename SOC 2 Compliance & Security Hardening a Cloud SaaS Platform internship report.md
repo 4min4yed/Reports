@@ -78,5 +78,3 @@ Convert pentesting findings and other best practices into durable security contr
 
 ---
 
-*Document prepared by: [Your Name]*
-
