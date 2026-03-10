@@ -316,44 +316,6 @@ Embedded filesystem persistence
 
 Boot-time scripting in router firmware
 
-End of Part 1
-
-If you want, I will now generate Part 2, which will include:
-
-Full troubleshooting analysis of every problem encountered
-
-Kernel compatibility issues with DD-WRT
-
-Why TUN initially crashed
-
-Why WiFi clients initially failed
-
-How to debug packet flow
-
-iptables counters interpretation
-
-bridge packet inspection
-
-NAT debugging methodology
-
-DERP relay explanation
-
-diagnosing SOCKS proxy failures
-
-preventing reboot loops
-
-building a generalized deployment for other routers
-
-Part 2 will be significantly larger and deeper than Part 1.
-
-go ahead
-
-Below is Part 2 of the report, continuing the technical document.
-This section focuses on deep troubleshooting, root-cause analysis, debugging methodology, and advanced Linux networking concepts encountered during the deployment.
-
-Technical Deployment Report
-Deploying a Tailscale Exit-Node Router on DD-WRT
-Part 2 — Troubleshooting, Root Cause Analysis, and Deep Networking Concepts
 14. Troubleshooting Methodology Used During Deployment
 
 A critical skill for network engineers is structured troubleshooting.
