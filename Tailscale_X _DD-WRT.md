@@ -1,45 +1,38 @@
-#Technical Deployment Report
-##Patching a Netgear router with *DD-WRT* AND Deploying Tailscale on it.
+# Technical Deployment Report
+## Patching a Netgear router with *DD-WRT* AND Deploying Tailscale on it.
 
-###1. Executive Overview
+### 1. Executive Overview
 
-This document describes the complete deployment and troubleshooting process for converting a consumer router running DD-WRT into a Tailscale gateway router.
+This is my complete deployment and troubleshooting process for converting a consumer router into a **Tailscale** gateway router running **DD-WRT**.
 
-The router transparently forwards traffic from LAN clients through a remote Tailscale exit node, allowing devices connected to the router to use the exit node’s public IP.
+The router transparently forwards traffic from its LAN clients through a remote Tailscale exit node, allowing them to use the exit node’s public IP and/or access the remote LAN.
 
 The deployment required solving several non-trivial networking problems including:
+  - **Kernel** compatibility with userspace networking.
+  - **NAT** interaction with overlay networks (SNAT and MASQUERADE).
+  - **Linux bridge** behavior in router firmware.
+- **Packet forwarding** through a virtual interface.
+- **iptables** Firewall rules.
+- **Persistence** on embedded systems.
+- Startup **automation** via NVRAM hooks.
 
-Kernel compatibility with userspace networking
+I learnt a lot during this project, so I hope you learn something too after reading this document.
 
-NAT interaction with overlay networks
+### 2. System Architecture
+#### Router:
 
-Linux bridge behavior in router firmware
+Netgear R6700v3 \
+Broadcom BCM4708 / BCM4709 \
+RAM: ~256MB \ 
+Flash: ~128MB 
 
-Packet forwarding through a virtual interface
+#### Firmware:
 
-Persistence on embedded systems
-
-Startup automation via NVRAM hooks
-
-This document explains not only the steps taken but why each step works and the networking concepts involved.
-
-###2. System Architecture
-####2.1 Physical Architecture
-
-Router:
-
-Netgear R6700v3
-Broadcom BCM4708 / BCM4709
-RAM: ~256MB
-Flash: ~128MB
-
-Firmware:
-
-DD-WRT v3.0 (2026 build)
-Linux kernel 4.4.302
+DD-WRT v3.0 (2026 build) \
+Linux kernel 4.4.302 \
 BusyBox environment
 
-Network topology:
+#### Network topology:
 
 ```
 LAN clients
@@ -55,108 +48,45 @@ Exit Node (Windows machine)
 Internet
 ```
 
-###3. Network Topology
-Router Interfaces
-br0       LAN bridge
-vlan2     WAN interface
-tailscale0 Tailscale virtual interface
-LAN
-192.168.2.0/24
-Router: 192.168.2.1
-WAN
-192.168.0.63
-Gateway: 192.168.0.254
-Tailscale network
-100.x.x.x
+#### Tailscale:
+What is Tailscale? Here is a comprehensive mix of definitions (mine and other definitions):
+-    *Tailscale* is a **mesh (Direct P2P) Overlay (on top of the already existing internet connection) VPN** service built on the WireGuard® protocol that creates a secure, private network between any devices, servers, or cloud environments, regardless of location. 
 
-Tailscale uses Carrier-Grade NAT space (100.64.0.0/10) internally.
+- Tailscale uses Carrier-Grade NAT space (100.64.0.0/10) internally.
 
-4. Goal of the Deployment
+### 3. Goal of the Deployment
 
-The goal is to allow any device connected to the router to:
+The goal is to allow any device connected to the router to Browse the internet through a remote Tailscale exit node, without having to download the app.
 
-Browse the internet through a remote Tailscale exit node.
+==> This is useful especially for legace devices that cannot have the app.
 
-This means:
 
-LAN device → router → tailscale tunnel → exit node → internet
-
-The LAN device itself does not run Tailscale.
-
-5. Key Networking Concepts Used
-
-The deployment touches several advanced networking topics.
-
-5.1 Overlay Networks
-
-Tailscale is an overlay network.
-
-An overlay network runs on top of an existing network.
-
-Example:
-
-Internet (underlay)
-        │
-        ▼
-Tailscale network (overlay)
-
-Overlay networks create virtual IP networks.
-
-Example:
-
-Device A: 100.70.224.31
-Device B: 100.64.186.77
-
-These IPs exist only inside Tailscale.
-
-5.2 Exit Nodes
-
-An exit node acts like a VPN gateway.
-
-Traffic path:
-
-client → tailscale tunnel → exit node → internet
-
-Public IP used:
-
-exit node IP
-5.3 Userspace Networking
-
+### 4. Key Networking Concepts Used
+4.1 Userspace Networking
 Normally WireGuard uses kernel networking.
-
 However DD-WRT's kernel may lack required modules.
-
 Tailscale supports:
-
 userspace networking
-
 Meaning:
-
 WireGuard engine runs inside userspace
 instead of kernel
 
 Interface created:
-
 tailscale0
+
 5.4 Linux Bridge
+Routers often use bridges (virtual switch).
 
-Routers often use bridges.
-
-Bridge example:
-
-br0
- ├─ eth1 (WiFi)
- ├─ eth2 (WiFi)
+br0\
+ ├─ eth1 (WiFi)\
+ ├─ eth2 (WiFi)\
  └─ vlan1 (LAN ports)
 
-A bridge works like a virtual switch.
-
-All devices connected appear in the same LAN.
+So all devices connected to any of the interfeces (eth1, 2, and lan ports) appear in the same LAN.
 
 5.5 NAT in This Deployment
 
 Without NAT the exit node would receive packets from:
-
 192.168.2.x
 
 Those addresses are private.
@@ -199,23 +129,7 @@ DD-WRT uses several filesystems:
 /jffs  flash storage (persistent)
 /nvram configuration storage
 
-Important rule:
 
-/tmp resets after reboot
-
-This caused early failures.
-
-8. Persistence Strategy
-
-Persistent components stored in:
-
-/jffs/tailscale/
-
-Files:
-
-tailscale
-tailscaled
-tailscale.state
 9. Startup Automation
 
 DD-WRT allows startup hooks stored in NVRAM.
@@ -227,159 +141,135 @@ nvram set rc_firewall="script"
 
 These run during boot.
 
-10. Perfect Deployment Guide (No Problems Scenario)
+## Deployment Guide
 
 This section describes the ideal deployment path.
 
-Step 1 — Enable JFFS
-
-In DD-WRT:
-
-Administration → Management → JFFS2
-Enable
-Step 2 — Create directories
+-  Enable JFFS for persistance:
+    * DD-WRT GUI → Management → JFFS2: Enable
+- Download Tailscale:
+```
 mkdir -p /jffs/tailscale
-Step 3 — Download Tailscale
 
-Place binaries:
+wget https://pkgs.tailscale.com/stable/tailscale_1.60.0_arm.tgz
 
-/jffs/tailscale/tailscale
-/jffs/tailscale/tailscaled
+tar xzf tailscale_1.60.0_arm.tgz
 
-Make executable:
+cd tailscale_1.60.0_arm
 
 chmod +x /jffs/tailscale/*
-Step 4 — Start daemon
-/jffs/tailscale/tailscaled --state=/jffs/tailscale/tailscale.state &
-Step 5 — Connect to Tailscale
+```
+- Start daemon:
+```
+/jffs/tailscale/tailscaled --state=/jffs/tailscale/tailscale.state & 
+```
+- Connect to Tailscale, and authenticate through browser, which adds the device to the tailnet:
+```
 /jffs/tailscale/tailscale up --exit-node=100.64.186.77 --exit-node-allow-lan-access
+```
 
-Authenticate through browser.
-
-Step 6 — Enable routing
+- Enable interface to interface ip-forwarding:
+```
 echo 1 > /proc/sys/net/ipv4/ip_forward
-Step 7 — Configure NAT
-iptables -t nat -A POSTROUTING -o tailscale0 -j MASQUERADE
-Step 8 — Allow forwarding
+OR
+sysctl -w net.ipv4.ip_forward=1
+```
+
+- Set Allow rules in Iptables for forwarding from the br0 interface to the new tailscale0 interface.
+```
 iptables -A FORWARD -i br0 -o tailscale0 -j ACCEPT
 iptables -A FORWARD -i tailscale0 -o br0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-Step 9 — Save firewall script
-/jffs/tailscale-fw.sh
-Step 10 — Save startup script
-/jffs/tailscale-start.sh
-Step 11 — Register scripts in NVRAM
+```
+ which **isn't enough**, because at this point, the packets are forwarded from *LAN* to *tailnet0* but with the LAN subnet, which is **unknown** to devices in the tailnet, so we need to:
+- Configure NAT, but not the usual SNAT: `--to-source 100.64.0.5`, because that requires us to know the tailnet0 interface IP in the tailnet, which changes a lot, so you'd have to change the snat rule everytime you reset the connection to the tailnet, wheras **MASQUERADE** detects the interface IP automatically and NATs to it:
+```
+iptables -t nat -A POSTROUTING -o tailscale0 -j MASQUERADE
+```
+Now we have to make running Tailscale an the FW rules persistent, we use scripts containing the previous comands and tell `nvram` to run them on boot:
+```
 nvram set rc_startup="sh /jffs/tailscale-start.sh &"
 nvram set rc_firewall="sh /jffs/tailscale-fw.sh"
 nvram commit
-Step 12 — Reboot
+```
+- Reboot
 
 After reboot verify:
-
+```
 tailscale status
-11. Verification
-
+```
 Check routing:
-
+```
 ip route
-
+```
 Check NAT:
-
+```
 iptables -t nat -L
-
+```
 Check tailscale peers:
-
+```
 tailscale status
-12. Packet Path Verification
+```
 
-From LAN device:
+### The Reality-Check
 
-curl ifconfig.me
+This looks like *smooth sailing*, but trust me, it **WASN'T**;
 
-Expected:
+Multiple issues were encounterd throughout the project, and **that's where the learning started actually happening**.
 
-exit node public IP
-13. Key Concepts Learned
+This it the **Layered Troubleshooting Methodology** I Used During Deployment: similar to the OSI Model.
 
-During the deployment the following advanced networking topics were encountered:
 
-Linux bridges
-
-Overlay networks
-
-WireGuard userspace mode
-
-NAT behavior
-
-Linux routing tables
-
-Embedded filesystem persistence
-
-Boot-time scripting in router firmware
-
-14. Troubleshooting Methodology Used During Deployment
-
-A critical skill for network engineers is structured troubleshooting.
-
-During this project, issues were not solved randomly. Instead, the following methodology was applied.
-
-Layered Troubleshooting Model
-
-Problems were diagnosed using a layered model similar to the OSI approach:
-
-Layer 1  Hardware
-Layer 2  Link / Bridge
-Layer 3  Routing
-Layer 4  NAT / Firewall
-Layer 5  Overlay Network
+Layer 1  Hardware\
+Layer 2  Link / Bridge\
+Layer 3  Routing\
+Layer 4  NAT / Firewall\
+Layer 5  Overlay Network\
 Layer 6  Application
 
-When connectivity failed, each layer was validated sequentially.
-
-Example debugging path:
-
+When connectivity failed, each layer was validated sequentially, for example:
+```
 LAN device → bridge → router forwarding → NAT → tailscale0 → exit node
-15. Initial Problem: TUN Interface Crash
-Observed Error
+```
 
-When starting Tailscale:
+### Encountered Issues:
+1. **Router not supported by OpenWRT nor DD-WRT** in the official documentation:
 
+So I used a modified compatible expressvpn firmware image built on top of dd-wrt, SSHd into it and upgraded the DD-WRT to a version that supports Tailscale.
+
+2. **TUN Interface Crash**
+
+I got this error when starting Tailscale the first time:
+```
 panic: runtime error: invalid memory address
 wireguard-go tun_linux.go
 Root Cause
-
+```
 The router kernel was:
-
+```
 Linux 4.4.302
-
+```
 Tailscale versions after 1.50 assume more modern kernel capabilities.
-
 The crash occurred in:
-
+```
 wireguard-go TUN driver initialization
+```
 What Is a TUN Interface?
 
 A TUN interface is a virtual network interface operating at Layer 3.
 
-Example:
+**Packets sent to tailscale0 interface are:**
 
-tailscale0
-
-Packets sent to this interface are:
-
-captured by userspace
-processed by WireGuard
-encrypted
-sent to peers
+captured by userspace\
+processed by WireGuard\
+encrypted\
+sent to peers\
 Why the Crash Happened
 
-DD-WRT kernels often:
+**DD-WRT kernels often:**
 
-lack newer TUN ioctl implementations
-
-use older netlink APIs
-
-omit certain kernel modules
-
+lack newer TUN ioctl implementations\
+use older netlink APIs\
+omit certain kernel modules\
 The Tailscale engine expected features not present.
 
 Diagnostic Commands
@@ -391,6 +281,7 @@ ls -l /dev/net/tun
 Check module:
 
 lsmod | grep tun
+
 Final Resolution
 
 The deployment switched to:
@@ -402,7 +293,8 @@ Instead of kernel WireGuard.
 Meaning:
 
 tailscaled handles networking internally
-16. Second Problem: SOCKS Proxy Failure
+
+### Second Problem: SOCKS Proxy Failure
 
 Initially a workaround was attempted:
 
@@ -440,7 +332,7 @@ transparent routing
 
 Therefore NAT-based routing was implemented instead.
 
-17. Third Problem: WiFi Clients Had No Internet
+### Third Problem: WiFi Clients Had No Internet
 
 This was the most complex issue.
 
@@ -485,7 +377,7 @@ This confirmed WiFi devices were visible.
 
 Thus the issue was not Layer 2.
 
-18. NAT Misconfiguration
+- NAT Misconfiguration
 
 The key NAT rule originally used:
 
@@ -515,7 +407,8 @@ instead of Tailscale.
 
 Correct Rule
 iptables -t nat -A POSTROUTING -o tailscale0 -j MASQUERADE
-19. Linux Bridge Netfilter Interaction
+
+- Linux Bridge Netfilter Interaction
 
 A subtle issue encountered was:
 
@@ -541,7 +434,7 @@ WiFi traffic bypasses iptables
 
 Which explains earlier failures.
 
-20. Routing Table Mistake
+- Routing Table Mistake
 
 At one point the default route was changed to:
 
@@ -568,7 +461,7 @@ default via WAN
 
 Only LAN client traffic is NATed to Tailscale.
 
-21. Understanding Tailscale Routing
+- Understanding Tailscale Routing
 
 Tailscale uses policy routing.
 
@@ -586,7 +479,7 @@ ip rule
 Example output:
 
 5210: from all fwmark 0x80000 lookup main
-22. DERP Relays
+- DERP Relays
 
 In logs we saw:
 
@@ -601,7 +494,7 @@ router → DERP → exit node
 
 This is less efficient but ensures connectivity.
 
-23. DNS Resolver Errors
+- DNS Resolver Errors
 
 Logs contained:
 
@@ -615,7 +508,7 @@ Tailscale DNS manager does not modify router DNS.
 
 This warning is harmless.
 
-24. Reboot Loop Issue
+- Reboot Loop Issue
 
 During early attempts the router entered reboot loops.
 
@@ -639,7 +532,7 @@ allowing:
 WAN interface initialization
 bridge creation
 firewall loading
-25. Persistent Storage Problem
+- Persistent Storage Problem
 
 Initially binaries were stored in:
 
@@ -662,7 +555,7 @@ Used for:
 binaries
 state file
 scripts
-26. State File Importance
+- State File Importance
 
 The file:
 
@@ -677,7 +570,7 @@ login session
 If lost, router must:
 
 re-authenticate
-27. Understanding NVRAM
+- Understanding NVRAM
 
 Routers use NVRAM to store configuration variables.
 
@@ -690,7 +583,7 @@ Commands:
 
 nvram set
 nvram commit
-28. Final Stable Architecture
+- Final Stable Architecture
 
 Final working design:
 
@@ -709,7 +602,8 @@ WireGuard encryption
 Exit node
     ↓
 Internet
-29. Diagnostic Commands Cheat Sheet
+
+### Diagnostic Commands Cheat Sheet
 Interface status
 ip addr
 Routing table
@@ -724,19 +618,9 @@ Tailscale peers
 tailscale status
 Packet counters
 iptables -L -v
-30. Lessons Learned
+### Lessons Learned
 
-Key lessons from the deployment:
-
-Embedded systems behave differently
-
-Router firmware is not standard Linux.
-
-Overlay networks require NAT understanding
-
-Routing alone is insufficient.
-
-Bridge networking introduces hidden complexity
+New lessons from the deployment:
 
 WiFi traffic may bypass firewall rules.
 
@@ -744,11 +628,9 @@ Persistence must be planned
 
 Filesystems differ in embedded environments.
 
-Debugging requires visibility
-
 Packet counters are extremely valuable.
 
-31. Potential Improvements
+### Potential Improvements
 
 Future enhancements could include:
 
@@ -769,7 +651,7 @@ Monitoring
 
 Export router metrics.
 
-32. Conclusion
+## Conclusion
 
 This project successfully transformed a consumer router into a Tailscale exit-node gateway.
 
