@@ -26,7 +26,7 @@ Examples:
 - Static public service often includes a small routed block.
 - One address is commonly used on customer edge, another as ISP gateway.
 - Delivery can be PPPoE or routed/non-PPPoE depending on provider design.
-- CGNAT is common on mobile networks (shared public IP).
+- CGNAT is common on mobile networks (like NAT ~ shared public IP).
 
 ## Redundancy and High Availability
 
@@ -80,4 +80,5 @@ snmpwalk ... | grep -i "STRING"
 
 ```bash
 curl https://ipinfo.io
+curl https://ifconfig.me/ip
 ```
