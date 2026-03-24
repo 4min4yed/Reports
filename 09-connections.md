@@ -206,6 +206,7 @@ HTTP/1.1 200 OK
 ## Debugging Checklist
 
 - Document behavior before, during, and after troubleshooting.
+- Make Backup of configs, firmware, rules... (iptables-save > /etc/iptables/rules.v4  ||  iptables-restore < /etc/iptables/rules.v4)
 - Wait around 60 seconds before and after cable/device changes.
 - Keep ISP behavior in mind when interpreting traces.
 
