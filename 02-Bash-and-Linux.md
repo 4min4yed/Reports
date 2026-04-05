@@ -5,6 +5,7 @@
 - Numeric comparison example: use `-eq`.
 - String comparison: use quoted variables.
 - Exit status conventions: `0` success, non-zero failure.
+- SUID (Set User ID): running file with owner's permissions
 
 ## Useful Commands
 
