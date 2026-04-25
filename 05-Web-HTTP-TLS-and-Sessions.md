@@ -43,18 +43,16 @@ Unix socket types:
 3. Client stores cookie and sends it on each request.
 4. Server validates session ID to authenticate user context.
 
-## JWT Flow
-
+## JWTs
 JWT parts:
 - Header (metadata)
 - Payload (claims)
 - Signature (integrity/authentication)
-
-Typical flow:
-1. User authenticates.
-2. Server issues signed JWT.
-3. Client sends `Authorization: Bearer <token>`.
-4. Server verifies signature and claims.
+  
+Making JWT:
+- base64-encode the payload
+- hash the \[encoded] payload
+- encrypt the hash (asymetric/symetric)
 
 JWT header fields often seen:
 - `jwk`
