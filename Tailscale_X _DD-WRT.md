@@ -1,6 +1,8 @@
 # Technical Deployment Report
 ## Patching a Netgear router with *DD-WRT* AND Deploying Tailscale on it.
 
+![](Images/DDWRT.jpeg)
+
 ### 1. Executive Overview
 
 This is my complete deployment and troubleshooting process for converting a consumer router into a **Tailscale** gateway router running **DD-WRT**.
